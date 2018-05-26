@@ -160,6 +160,6 @@ static void __exit my_exit(void)
 module_init(my_init);
 module_exit(my_exit);
 
-MODULE_AUTHOR("Marcus Hodges");
+MODULE_AUTHOR("Ring -4");
 MODULE_LICENSE("GPL v2");
 
