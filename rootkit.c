@@ -25,8 +25,8 @@ struct linux_dirent {
 	*/
 };
 
-int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent));
-int filter_fn(struct linux_dirent d);
+static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent));
+static inline int filter_fn(struct linux_dirent d);
 
 asmlinkage int (*real_getdents)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
 asmlinkage int (*real_getdents64)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
@@ -51,7 +51,7 @@ asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsign
 	return filter_out(dirp, length, &filter_fn);
 }
 
-int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent)) {
+static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent)) {
 	int index = 0;
 	int index_copyto = -1;
 	unsigned short reclen;
@@ -76,7 +76,7 @@ int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_d
 	return length;
 }
 
-int filter_fn(struct linux_dirent d) {
+static inline int filter_fn(struct linux_dirent d) {
 	pr_info("%s", d.d_name);
 	
 	return 0;
