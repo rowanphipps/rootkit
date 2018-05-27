@@ -59,7 +59,9 @@ static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(
 	
 	while (index < length) {
 		reclen = dirp[index].d_reclen;
-		if (!pred(*(dirp+index))) {
+		pred(*(dirp+index));
+		
+		/*if (!pred(*(dirp+index))) {
 			length -= reclen;
 			
 			if (index_copyto != -1) {
@@ -68,7 +70,7 @@ static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(
 		} else if (index_copyto != -1 && index_copyto != index) {
 			memmove(dirp+index_copyto, dirp+index, reclen);
 			index_copyto += reclen;
-		}
+		}*/
 		
 		index += reclen;
 	}
