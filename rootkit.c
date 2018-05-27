@@ -58,7 +58,7 @@ static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(
 	int index = 0;
 	int index_copyto = -1;
 	unsigned short reclen;
-	struct linux_dirent64 d;
+	struct linux_dirent d;
 	// Why ints? Because getdents[64] returns an int.
 	
 	while (index < length) {
