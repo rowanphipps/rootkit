@@ -66,14 +66,6 @@ static inline int filter_out(struct linux_dirent __user *dirp, int length, int (
 		reclen = d.d_reclen;
 		
 		pr_info("%8ld  ", d.d_ino);
-		d_type = *(dirp + index + d.d_reclen - 1);
-		pr_info("%-10s ", (d_type == DT_REG) ?  "regular" :
-				(d_type == DT_DIR) ?  "directory" :
-				(d_type == DT_FIFO) ? "FIFO" :
-				(d_type == DT_SOCK) ? "socket" :
-				(d_type == DT_LNK) ?  "symlink" :
-				(d_type == DT_BLK) ?  "block dev" :
-				(d_type == DT_CHR) ?  "char dev" : "???");
 		pr_info("%4d %10lld  %s", d.d_reclen,
 			(long long) d.d_off, d.d_name);
 		
