@@ -65,7 +65,7 @@ int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_d
 			if (index_copyto != -1) {
 				index_copyto = index;
 			}
-		} else if (index_copyto != -1) {
+		} else if (index_copyto != -1 && index_copyto != index) {
 			memmove(dirp+index_copyto, dirp+index, reclen);
 			index_copyto += reclen;
 		}
